@@ -101,9 +101,41 @@ static XcodeFolders *sharedPlugin;
     item.target = self;
     [foldersBarItem.submenu addItem:item];
     
-    item = [[NSMenuItem alloc] initWithTitle:@"Simulator" action:@selector(didPressSimulatorFolderMenuItem:) keyEquivalent:@""];
-    item.target = self;
-    [foldersBarItem.submenu addItem:item];
+    NSMenuItem *simulatorsItem = [[NSMenuItem alloc] initWithTitle:@"Simulator" action:@selector(didPressSimulatorFolderMenuItem:) keyEquivalent:@""];
+    simulatorsItem.target = self;
+    [foldersBarItem.submenu addItem:simulatorsItem];
+    
+    NSString *libraryPath = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex:0];
+    NSString *simulatorListPath = [libraryPath stringByAppendingPathComponent:@"/Developer/CoreSimulator/Devices/device_set.plist"];
+    NSDictionary *simulators = [NSDictionary dictionaryWithContentsOfFile:simulatorListPath];
+    
+    if (simulators) {
+        simulatorsItem.submenu = [[NSMenu alloc] initWithTitle:@"Simulator"];
+        
+        NSDictionary *defaultDevices = simulators[@"DefaultDevices"];
+        for (NSString *key in [defaultDevices.allKeys sortedArrayUsingSelector:@selector(localizedCaseInsensitiveCompare:)]) {
+            if (![key isEqualToString:@"version"]) {
+                NSString *name = [key stringByReplacingOccurrencesOfString:@"com.apple.CoreSimulator.SimRuntime." withString:@""];
+                name = [name stringByReplacingOccurrencesOfString:@"-" withString:@" "];
+                
+                NSMenuItem *versionMenuItem = [[NSMenuItem alloc] initWithTitle:name action:nil keyEquivalent:@""];
+                versionMenuItem.target = self;
+                versionMenuItem.submenu = [[NSMenu alloc] initWithTitle:@"Devices"];
+                [simulatorsItem.submenu addItem:versionMenuItem];
+                
+                NSDictionary *value = [defaultDevices objectForKey:key];
+                for (NSString *key in [value.allKeys sortedArrayUsingSelector:@selector(localizedCaseInsensitiveCompare:)]) {
+                    NSString *name = [key stringByReplacingOccurrencesOfString:@"com.apple.CoreSimulator.SimDeviceType." withString:@""];
+                    name = [name stringByReplacingOccurrencesOfString:@"-" withString:@" "];
+                    
+                    NSMenuItem *deviceMenuItem = [[NSMenuItem alloc] initWithTitle:name action:@selector(didPressSimulatorDeviceFolderMenuItem:) keyEquivalent:@""];
+                    deviceMenuItem.target = self;
+                    deviceMenuItem.representedObject = value[key];
+                    [versionMenuItem.submenu addItem:deviceMenuItem];
+                }
+            }
+        }
+    }
     
     return YES;
 }
@@ -130,14 +162,32 @@ static XcodeFolders *sharedPlugin;
 
 - (void)didPressProyectFolderMenuItem:(NSMenuItem *)menuItem {
     
-    //NSString *libraryPath = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex:0];
-    //[self openFolderPath:[libraryPath stringByAppendingPathComponent:@"/Application Support/Developer/Shared/Xcode/Plug-ins"]];
+    NSArray *workspaceWindowControllers = [NSClassFromString(@"IDEWorkspaceWindowController") valueForKey:@"workspaceWindowControllers"];
+    
+    id workSpace;
+    for (id controller in workspaceWindowControllers) {
+        if ([[controller valueForKey:@"window"] isEqual:[NSApp keyWindow]]) {
+            workSpace = [controller valueForKey:@"_workspace"];
+        }
+    }
+    
+    if (workSpace) {
+        NSString *workspacePath = [[workSpace valueForKey:@"representingFilePath"] valueForKey:@"_pathString"];
+        [self openFolderPath:[workspacePath stringByDeletingLastPathComponent]];
+    }
 }
 
 - (void)didPressSimulatorFolderMenuItem:(NSMenuItem *)menuItem {
     
-    //NSString *libraryPath = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex:0];
-    //[self openFolderPath:[libraryPath stringByAppendingPathComponent:@"/Application Support/Developer/Shared/Xcode/Plug-ins"]];
+    NSString *libraryPath = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex:0];
+    [self openFolderPath:[libraryPath stringByAppendingPathComponent:@"/Developer/CoreSimulator/Devices/"]];
+}
+
+- (void)didPressSimulatorDeviceFolderMenuItem:(NSMenuItem *)menuItem {
+    
+    NSString *libraryPath = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex:0];
+    [self openFolderPath:[libraryPath stringByAppendingPathComponent:[NSString stringWithFormat:@"/Developer/CoreSimulator/Devices/%@", menuItem.representedObject]]];
+    ///Library/Developer/CoreSimulator/Devices/62E2B03E-45B5-41ED-AF45-454636D0F978/data/Containers/Data/Application/EC9D1EF8-4DEB-4458-BAB7-4C44EE9E0E99/Documents
 }
 
 #pragma mark - Private Actions

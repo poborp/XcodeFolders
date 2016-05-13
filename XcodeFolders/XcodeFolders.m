@@ -60,6 +60,23 @@ static XcodeFolders *sharedPlugin;
 
 - (BOOL)initialize {
     
+//    NSMenuItem *menuItem = [[NSApp mainMenu] itemWithTitle:@"View"];
+//    if (menuItem) {
+//
+//        [menuItem.submenu addItem:[NSMenuItem separatorItem]];
+//    
+//        NSMenuItem *menuBarItem = [[NSMenuItem alloc] initWithTitle:@"XCode Folders" action:NULL keyEquivalent:@""];
+//        
+//        NSMenu *newMenu = [[NSMenu alloc] initWithTitle:@"Folders"];
+//        [menuBarItem setSubmenu:newMenu];
+//        [[menuItem submenu] addItem:menuBarItem];
+//
+//        return YES;
+//    } else {
+//    
+//        return NO;
+//    }
+    
     NSMenuItem *foldersBarItem = [[NSMenuItem alloc] initWithTitle:@"Folders" action:NULL keyEquivalent:@""];
     foldersBarItem.submenu = [[NSMenu alloc] initWithTitle:@"Folders"];
     [[NSApp mainMenu] insertItem:foldersBarItem atIndex:3];
@@ -75,6 +92,16 @@ static XcodeFolders *sharedPlugin;
     [foldersBarItem.submenu addItem:item];
     
     item = [[NSMenuItem alloc] initWithTitle:@"Plug-ins" action:@selector(didPressFolderPluginsMenuItem:) keyEquivalent:@""];
+    item.target = self;
+    [foldersBarItem.submenu addItem:item];
+    
+    [foldersBarItem.submenu addItem:[NSMenuItem separatorItem]];
+
+    item = [[NSMenuItem alloc] initWithTitle:@"Current Proyect" action:@selector(didPressProyectFolderMenuItem:) keyEquivalent:@""];
+    item.target = self;
+    [foldersBarItem.submenu addItem:item];
+    
+    item = [[NSMenuItem alloc] initWithTitle:@"Simulator" action:@selector(didPressSimulatorFolderMenuItem:) keyEquivalent:@""];
     item.target = self;
     [foldersBarItem.submenu addItem:item];
     
@@ -99,6 +126,18 @@ static XcodeFolders *sharedPlugin;
     
     NSString *libraryPath = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex:0];
     [self openFolderPath:[libraryPath stringByAppendingPathComponent:@"/Application Support/Developer/Shared/Xcode/Plug-ins"]];
+}
+
+- (void)didPressProyectFolderMenuItem:(NSMenuItem *)menuItem {
+    
+    //NSString *libraryPath = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex:0];
+    //[self openFolderPath:[libraryPath stringByAppendingPathComponent:@"/Application Support/Developer/Shared/Xcode/Plug-ins"]];
+}
+
+- (void)didPressSimulatorFolderMenuItem:(NSMenuItem *)menuItem {
+    
+    //NSString *libraryPath = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex:0];
+    //[self openFolderPath:[libraryPath stringByAppendingPathComponent:@"/Application Support/Developer/Shared/Xcode/Plug-ins"]];
 }
 
 #pragma mark - Private Actions

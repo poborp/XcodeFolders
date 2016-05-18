@@ -6,6 +6,12 @@
 //  Copyright © 2016 tBear Software. All rights reserved.
 //
 
+#define kUserLibraryPath [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex:0]
+#define kCodeSnippetsPath [kUserLibraryPath stringByAppendingPathComponent:@"/Developer/Xcode/UserData/CodeSnippets"]
+#define kFileTemplatesPath [kUserLibraryPath stringByAppendingPathComponent:@"/Developer/Xcode/Templates/File Templates"]
+#define kPluginsPath [kUserLibraryPath stringByAppendingPathComponent:@"/Application Support/Developer/Shared/Xcode/Plug-ins"]
+#define kDevicesPath [kUserLibraryPath stringByAppendingPathComponent:@"/Developer/CoreSimulator/Devices/"]
+
 #import "XcodeFolders.h"
 
 static XcodeFolders *sharedPlugin;
@@ -60,53 +66,58 @@ static XcodeFolders *sharedPlugin;
 
 - (BOOL)initialize {
     
-//    NSMenuItem *menuItem = [[NSApp mainMenu] itemWithTitle:@"View"];
-//    if (menuItem) {
-//
-//        [menuItem.submenu addItem:[NSMenuItem separatorItem]];
-//    
-//        NSMenuItem *menuBarItem = [[NSMenuItem alloc] initWithTitle:@"XCode Folders" action:NULL keyEquivalent:@""];
-//        
-//        NSMenu *newMenu = [[NSMenu alloc] initWithTitle:@"Folders"];
-//        [menuBarItem setSubmenu:newMenu];
-//        [[menuItem submenu] addItem:menuBarItem];
-//
-//        return YES;
-//    } else {
-//    
-//        return NO;
-//    }
-    
-    NSMenuItem *foldersBarItem = [[NSMenuItem alloc] initWithTitle:@"Folders" action:NULL keyEquivalent:@""];
-    foldersBarItem.submenu = [[NSMenu alloc] initWithTitle:@"Folders"];
-    [[NSApp mainMenu] insertItem:foldersBarItem atIndex:3];
-    
-    NSMenuItem *item;
-    
-    item = [[NSMenuItem alloc] initWithTitle:@"CodeSnippets" action:@selector(didPressSnippetsPluginsMenuItem:) keyEquivalent:@""];
-    item.target = self;
-    [foldersBarItem.submenu addItem:item];
-    
-    item = [[NSMenuItem alloc] initWithTitle:@"File Templates" action:@selector(didPressFolderFileTemplatesMenuItem:) keyEquivalent:@""];
-    item.target = self;
-    [foldersBarItem.submenu addItem:item];
-    
-    item = [[NSMenuItem alloc] initWithTitle:@"Plug-ins" action:@selector(didPressFolderPluginsMenuItem:) keyEquivalent:@""];
-    item.target = self;
-    [foldersBarItem.submenu addItem:item];
-    
-    [foldersBarItem.submenu addItem:[NSMenuItem separatorItem]];
+    NSMenuItem *menuItem = [[NSApp mainMenu] itemWithTitle:@"View"];
+    if (menuItem) {
 
-    item = [[NSMenuItem alloc] initWithTitle:@"Current Proyect" action:@selector(didPressProyectFolderMenuItem:) keyEquivalent:@""];
-    item.target = self;
-    [foldersBarItem.submenu addItem:item];
+        [menuItem.submenu addItem:[NSMenuItem separatorItem]];
+
+        NSMenuItem *menuBarItem = [[NSMenuItem alloc] initWithTitle:@"Xcode Folders" action:NULL keyEquivalent:@""];
+
+        NSMenu *newMenu = [[NSMenu alloc] initWithTitle:@"Folders"];
+        menuBarItem.submenu = newMenu;
+        [menuItem.submenu addItem:menuBarItem];
+        
+        return [self initializeWithMainMenuItem:menuBarItem];
+        
+    } else {
+
+        NSMenuItem *foldersBarItem = [[NSMenuItem alloc] initWithTitle:@"Folders" action:nil keyEquivalent:@""];
+        foldersBarItem.submenu = [[NSMenu alloc] initWithTitle:@"Folders"];
+        [[NSApp mainMenu] insertItem:foldersBarItem atIndex:3];
+        
+        return [self initializeWithMainMenuItem:foldersBarItem];
+    }
+}
+
+- (BOOL)initializeWithMainMenuItem:(NSMenuItem *)mainMenuItem {
     
-    NSMenuItem *simulatorsItem = [[NSMenuItem alloc] initWithTitle:@"Simulator" action:@selector(didPressSimulatorFolderMenuItem:) keyEquivalent:@""];
+    NSMenuItem *codeSnippetsMenuItem = [[NSMenuItem alloc] initWithTitle:@"CodeSnippets" action:@selector(didPressFolderMenuItem:) keyEquivalent:@""];
+    codeSnippetsMenuItem.target = self;
+    codeSnippetsMenuItem.representedObject = kCodeSnippetsPath;
+    [mainMenuItem.submenu addItem:codeSnippetsMenuItem];
+    
+    NSMenuItem *fileTemplatesMenuItem = [[NSMenuItem alloc] initWithTitle:@"File Templates" action:@selector(didPressFolderMenuItem:) keyEquivalent:@""];
+    fileTemplatesMenuItem.target = self;
+    fileTemplatesMenuItem.representedObject = kFileTemplatesPath;
+    [mainMenuItem.submenu addItem:fileTemplatesMenuItem];
+    
+    NSMenuItem *pluginsMenuItem = [[NSMenuItem alloc] initWithTitle:@"Plug-ins" action:@selector(didPressFolderMenuItem:) keyEquivalent:@""];
+    pluginsMenuItem.target = self;
+    pluginsMenuItem.representedObject = kPluginsPath;
+    [mainMenuItem.submenu addItem:pluginsMenuItem];
+    
+    [mainMenuItem.submenu addItem:[NSMenuItem separatorItem]];
+
+    NSMenuItem *currentProjectMenuItem = [[NSMenuItem alloc] initWithTitle:@"Current Project" action:@selector(didPressProyectFolderMenuItem:) keyEquivalent:@""];
+    currentProjectMenuItem.target = self;
+    [mainMenuItem.submenu addItem:currentProjectMenuItem];
+    
+    NSMenuItem *simulatorsItem = [[NSMenuItem alloc] initWithTitle:@"Simulator" action:@selector(didPressFolderMenuItem:) keyEquivalent:@""];
     simulatorsItem.target = self;
-    [foldersBarItem.submenu addItem:simulatorsItem];
+    simulatorsItem.representedObject = kDevicesPath;
+    [mainMenuItem.submenu addItem:simulatorsItem];
     
-    NSString *libraryPath = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex:0];
-    NSString *simulatorListPath = [libraryPath stringByAppendingPathComponent:@"/Developer/CoreSimulator/Devices/device_set.plist"];
+    NSString *simulatorListPath = [kDevicesPath stringByAppendingPathComponent:@"device_set.plist"];
     NSDictionary *simulators = [NSDictionary dictionaryWithContentsOfFile:simulatorListPath];
     
     if (simulators) {
@@ -115,23 +126,54 @@ static XcodeFolders *sharedPlugin;
         NSDictionary *defaultDevices = simulators[@"DefaultDevices"];
         for (NSString *key in [defaultDevices.allKeys sortedArrayUsingSelector:@selector(localizedCaseInsensitiveCompare:)]) {
             if (![key isEqualToString:@"version"]) {
-                NSString *name = [key stringByReplacingOccurrencesOfString:@"com.apple.CoreSimulator.SimRuntime." withString:@""];
-                name = [name stringByReplacingOccurrencesOfString:@"-" withString:@" "];
+                NSString *deviceVersion = [key stringByReplacingOccurrencesOfString:@"com.apple.CoreSimulator.SimRuntime." withString:@""];
+                deviceVersion = [deviceVersion stringByReplacingOccurrencesOfString:@"-" withString:@" "];
                 
-                NSMenuItem *versionMenuItem = [[NSMenuItem alloc] initWithTitle:name action:nil keyEquivalent:@""];
+                NSMenuItem *versionMenuItem = [[NSMenuItem alloc] initWithTitle:deviceVersion action:nil keyEquivalent:@""];
                 versionMenuItem.target = self;
                 versionMenuItem.submenu = [[NSMenu alloc] initWithTitle:@"Devices"];
                 [simulatorsItem.submenu addItem:versionMenuItem];
                 
                 NSDictionary *value = [defaultDevices objectForKey:key];
                 for (NSString *key in [value.allKeys sortedArrayUsingSelector:@selector(localizedCaseInsensitiveCompare:)]) {
-                    NSString *name = [key stringByReplacingOccurrencesOfString:@"com.apple.CoreSimulator.SimDeviceType." withString:@""];
-                    name = [name stringByReplacingOccurrencesOfString:@"-" withString:@" "];
+                    NSString *deviceName = [key stringByReplacingOccurrencesOfString:@"com.apple.CoreSimulator.SimDeviceType." withString:@""];
+                    deviceName = [deviceName stringByReplacingOccurrencesOfString:@"-" withString:@" "];
+                    NSString *deviceId = value[key];
                     
-                    NSMenuItem *deviceMenuItem = [[NSMenuItem alloc] initWithTitle:name action:@selector(didPressSimulatorDeviceFolderMenuItem:) keyEquivalent:@""];
+                    NSMenuItem *deviceMenuItem = [[NSMenuItem alloc] initWithTitle:deviceName action:@selector(didPressFolderMenuItem:) keyEquivalent:@""];
                     deviceMenuItem.target = self;
-                    deviceMenuItem.representedObject = value[key];
+                    deviceMenuItem.representedObject = [kDevicesPath stringByAppendingPathComponent:deviceId];
                     [versionMenuItem.submenu addItem:deviceMenuItem];
+                    
+                    NSArray *appsInBundlePath = [self appsInBundlePathForDeviceId:deviceId];
+                    NSArray *appsInDataPath = [self appsInDataPathForDeviceId:deviceId];
+                    
+                    for (NSDictionary *appInBundlePath in appsInBundlePath) {
+                        
+                        NSDictionary *appInDataPath = [[appsInDataPath filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:[NSString stringWithFormat:@"MetadataIdentifier == '%@'", appInBundlePath[@"MetadataIdentifier"]]]] firstObject];
+                        
+                        if (appsInDataPath) {
+                            if (!deviceMenuItem.submenu) {
+                                deviceMenuItem.submenu = [[NSMenu alloc] initWithTitle:@"Apps"];
+                            }
+                            
+                            NSMenuItem *appMenuItem = [[NSMenuItem alloc] initWithTitle:appInBundlePath[@"MetadataName"] action:@selector(didPressFolderMenuItem:) keyEquivalent:@""];
+                            appMenuItem.target = self;
+                            appMenuItem.representedObject = [kDevicesPath stringByAppendingPathComponent:[NSString stringWithFormat:@"%@/data/Containers/Bundle/Application/%@", deviceId, appInBundlePath[@"MetadataUUID"]]];
+                            appMenuItem.submenu = [[NSMenu alloc] initWithTitle:@"Folders"];
+                            [deviceMenuItem.submenu addItem:appMenuItem];
+                            
+                            NSMenuItem *documentsMenuItem = [[NSMenuItem alloc] initWithTitle:@"Documents" action:@selector(didPressFolderMenuItem:) keyEquivalent:@""];
+                            documentsMenuItem.target = self;
+                            documentsMenuItem.representedObject = [kDevicesPath stringByAppendingPathComponent:[NSString stringWithFormat:@"%@/data/Containers/Data/Application/%@/Documents", deviceId, appInDataPath[@"MetadataUUID"]]];
+                            [appMenuItem.submenu addItem:documentsMenuItem];
+                            
+                            NSMenuItem *libraryMenuItem = [[NSMenuItem alloc] initWithTitle:@"Library" action:@selector(didPressFolderMenuItem:) keyEquivalent:@""];
+                            libraryMenuItem.target = self;
+                            libraryMenuItem.representedObject = [kDevicesPath stringByAppendingPathComponent:[NSString stringWithFormat:@"%@/data/Containers/Data/Application/%@/Library", deviceId, appInDataPath[@"MetadataUUID"]]];
+                            [appMenuItem.submenu addItem:libraryMenuItem];
+                        }
+                    }
                 }
             }
         }
@@ -140,25 +182,55 @@ static XcodeFolders *sharedPlugin;
     return YES;
 }
 
+#pragma mark - Utils
+
+- (NSArray *)appsInBundlePathForDeviceId:(NSString *)deviceId {
+    
+    NSMutableArray *apps = [NSMutableArray new];
+    
+    NSString *path = [kDevicesPath stringByAppendingPathComponent:[NSString stringWithFormat:@"%@/data/Containers/Bundle/Application/", deviceId]];
+    NSArray *appFolders = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:path error:nil];
+    for (NSString *appFolder in appFolders) {
+        
+        NSString *plist = [kDevicesPath stringByAppendingPathComponent:[NSString stringWithFormat:@"%@/data/Containers/Bundle/Application/%@/.com.apple.mobile_container_manager.metadata.plist", deviceId, appFolder]];
+        NSDictionary *dict = [NSDictionary dictionaryWithContentsOfFile:plist];
+        
+        NSArray *files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:[path stringByAppendingPathComponent:appFolder] error:nil];
+        NSArray *appFiles = [files filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"self ENDSWITH '.app'"]];
+        if (appFiles.count > 0 && dict) {
+            
+            [apps addObject:@{@"MetadataIdentifier": dict[@"MCMMetadataIdentifier"],
+                              @"MetadataName": appFiles.firstObject,
+                              @"MetadataUUID": appFolder,
+                              }];
+        }
+    }
+    
+    return apps;
+}
+
+- (NSArray *)appsInDataPathForDeviceId:(NSString *)deviceId {
+    
+    NSMutableArray *apps = [NSMutableArray new];
+    
+    NSString *path = [kDevicesPath stringByAppendingPathComponent:[NSString stringWithFormat:@"%@/data/Containers/Data/Application/", deviceId]];
+    NSArray *appFolders = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:path error:nil];
+    for (NSString *appFolder in appFolders) {
+        
+        NSString *plist = [kDevicesPath stringByAppendingPathComponent:[NSString stringWithFormat:@"%@/data/Containers/Data/Application/%@/.com.apple.mobile_container_manager.metadata.plist", deviceId, appFolder]];
+        NSDictionary *dict = [NSDictionary dictionaryWithContentsOfFile:plist];
+        if (dict) {
+            
+            [apps addObject:@{@"MetadataIdentifier": dict[@"MCMMetadataIdentifier"],
+                              @"MetadataUUID": appFolder,
+                              }];
+        }
+    }
+    
+    return apps;
+}
+
 #pragma mark - MenuItem Actions
-
-- (void)didPressSnippetsPluginsMenuItem:(NSMenuItem *)menuItem {
-    
-    NSString *libraryPath = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex:0];
-    [self openFolderPath:[libraryPath stringByAppendingPathComponent:@"/Developer/Xcode/UserData/CodeSnippets"]];
-}
-
-- (void)didPressFolderFileTemplatesMenuItem:(NSMenuItem *)menuItem {
-    
-    NSString *libraryPath = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex:0];
-    [self openFolderPath:[libraryPath stringByAppendingPathComponent:@"/Developer/Xcode/Templates/File Templates"]];
-}
-
-- (void)didPressFolderPluginsMenuItem:(NSMenuItem *)menuItem {
-    
-    NSString *libraryPath = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex:0];
-    [self openFolderPath:[libraryPath stringByAppendingPathComponent:@"/Application Support/Developer/Shared/Xcode/Plug-ins"]];
-}
 
 - (void)didPressProyectFolderMenuItem:(NSMenuItem *)menuItem {
     
@@ -177,17 +249,9 @@ static XcodeFolders *sharedPlugin;
     }
 }
 
-- (void)didPressSimulatorFolderMenuItem:(NSMenuItem *)menuItem {
+- (void)didPressFolderMenuItem:(NSMenuItem *)menuItem {
     
-    NSString *libraryPath = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex:0];
-    [self openFolderPath:[libraryPath stringByAppendingPathComponent:@"/Developer/CoreSimulator/Devices/"]];
-}
-
-- (void)didPressSimulatorDeviceFolderMenuItem:(NSMenuItem *)menuItem {
-    
-    NSString *libraryPath = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex:0];
-    [self openFolderPath:[libraryPath stringByAppendingPathComponent:[NSString stringWithFormat:@"/Developer/CoreSimulator/Devices/%@", menuItem.representedObject]]];
-    ///Library/Developer/CoreSimulator/Devices/62E2B03E-45B5-41ED-AF45-454636D0F978/data/Containers/Data/Application/EC9D1EF8-4DEB-4458-BAB7-4C44EE9E0E99/Documents
+    [self openFolderPath:menuItem.representedObject];
 }
 
 #pragma mark - Private Actions

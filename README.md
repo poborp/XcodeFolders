@@ -8,6 +8,6 @@ Rapid access to Xcode folders, for Xcode 7+.
 
 ## Installation
 
-- By [Alcatraz](http://alcatraz.io). (Not yet).
+- By [Alcatraz](http://alcatraz.io). Search XcodeFolders in the lists.
 
 - Clone the repo and build the Xcode project. The plug-in will automatically be installed in `~/Library/Application Support/Developer/Shared/Xcode/Plug-ins`.
